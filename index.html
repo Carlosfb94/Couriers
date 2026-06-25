@@ -40,12 +40,9 @@
 
     <section class="searchPanel">
       <form id="searchForm">
-        <label class="field" id="fedexModeField" hidden>
-          Buscar por
-          <select id="fedexMode">
-            <option value="invoice">Factura</option>
-            <option value="tracking">Tracking</option>
-          </select>
+        <label class="field typeField">
+          Tipo de busqueda
+          <select id="searchType"></select>
         </label>
 
         <label class="field grow">
@@ -100,6 +97,6 @@
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=20260625-couriers"></script>
+  <script type="module" src="./app.js?v=20260625-couriers-flow"></script>
 </body>
 </html>

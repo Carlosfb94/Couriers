@@ -162,6 +162,10 @@ form {
   flex: 1 1 340px;
 }
 
+.typeField {
+  min-width: 190px;
+}
+
 .dateField {
   min-width: 150px;
 }
@@ -188,6 +192,12 @@ input:focus,
 select:focus {
   border-color: var(--green);
   box-shadow: 0 0 0 3px rgba(8, 116, 91, .16);
+}
+
+select:disabled {
+  color: #344d5b;
+  background: #eef4f1;
+  opacity: 1;
 }
 
 .primary {

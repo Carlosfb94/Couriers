@@ -2,29 +2,34 @@ const config = window.LLACOLEN_COURIERS_CONFIG || {};
 
 const state = {
   courier: "avanza",
+  searchType: "nota",
 };
 
 const couriers = {
   avanza: {
     name: "Avanza",
-    label: "Nota de venta",
-    placeholder: "Ej: 473063",
     resultTitle: "Seguimiento Avanza",
     subtitle: "Ingresa una nota de venta para consultar.",
+    searchTypes: [
+      {value: "nota", label: "Nota de venta", queryLabel: "Nota de venta", placeholder: "Ej: 473063"},
+    ],
   },
   fedex: {
     name: "FedEx",
-    label: "Factura",
-    placeholder: "Ej: 401215",
     resultTitle: "Seguimiento FedEx",
     subtitle: "Ingresa una factura para consultar.",
+    searchTypes: [
+      {value: "invoice", label: "Factura", queryLabel: "Factura", placeholder: "Ej: 401215"},
+      {value: "tracking", label: "Tracking", queryLabel: "Tracking", placeholder: "Ej: 873407576413"},
+    ],
   },
   correos: {
     name: "Correos",
-    label: "Factura",
-    placeholder: "Ej: 282773",
     resultTitle: "Seguimiento Correos",
     subtitle: "Ingresa una factura para consultar.",
+    searchTypes: [
+      {value: "invoice", label: "Factura", queryLabel: "Factura", placeholder: "Ej: 282773"},
+    ],
   },
 };
 
@@ -85,6 +90,11 @@ function resetMetrics() {
   $("metricEstado").textContent = "-";
   $("metricTracking").textContent = "-";
   $("metricReference").textContent = "-";
+}
+
+function currentSearchType() {
+  const meta = couriers[state.courier];
+  return meta.searchTypes.find((item) => item.value === state.searchType) || meta.searchTypes[0];
 }
 
 async function fetchJson(url, params) {
@@ -239,11 +249,12 @@ async function search(event) {
   let data;
   let query = clean($("queryInput").value);
   const courier = state.courier;
+  const searchType = state.searchType;
 
   if (courier === "avanza") query = digits(query);
   if (courier === "correos") query = firstInvoice(query);
-  if (courier === "fedex" && $("fedexMode").value === "invoice") query = firstInvoice(query);
-  if (courier === "fedex" && $("fedexMode").value === "tracking") query = digits(query);
+  if (courier === "fedex" && searchType === "invoice") query = firstInvoice(query);
+  if (courier === "fedex" && searchType === "tracking") query = digits(query);
   if (!query) return;
 
   $("queryInput").value = query;
@@ -261,8 +272,7 @@ async function search(event) {
       data = await fetchJson(config.correosFunctionUrl, new URLSearchParams({invoice: query}));
       renderCorreos(data);
     } else {
-      const mode = $("fedexMode").value;
-      const params = mode === "tracking"
+      const params = searchType === "tracking"
         ? new URLSearchParams({type: "tracking", tracking: query})
         : new URLSearchParams({type: "invoice", invoice: query, from: $("fromInput").value, to: $("toInput").value});
       data = await fetchJson(config.fedexFunctionUrl, params);
@@ -277,44 +287,64 @@ async function search(event) {
   }
 }
 
-function syncFedexMode() {
-  if (state.courier !== "fedex") return;
-  const byTracking = $("fedexMode").value === "tracking";
-  $("queryLabel").textContent = byTracking ? "Tracking" : "Factura";
-  $("queryInput").placeholder = byTracking ? "Ej: 873407576413" : "Ej: 401215";
-  $("fromField").hidden = byTracking;
-  $("toField").hidden = byTracking;
-  $("fromInput").required = !byTracking;
-  $("toInput").required = !byTracking;
+function syncSearchType(preserveValue = true) {
+  const select = $("searchType");
+  const meta = couriers[state.courier];
+  const previous = preserveValue ? select.value : "";
+  select.innerHTML = meta.searchTypes
+    .map((item) => `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`)
+    .join("");
+  const next = meta.searchTypes.some((item) => item.value === previous) ? previous : meta.searchTypes[0].value;
+  select.value = next;
+  state.searchType = next;
+  select.disabled = meta.searchTypes.length === 1;
+
+  const type = currentSearchType();
+  const usesFedexInvoiceDates = state.courier === "fedex" && state.searchType === "invoice";
+  $("queryLabel").textContent = type.queryLabel;
+  $("queryInput").placeholder = type.placeholder;
+  $("fromField").hidden = !usesFedexInvoiceDates;
+  $("toField").hidden = !usesFedexInvoiceDates;
+  $("fromInput").required = usesFedexInvoiceDates;
+  $("toInput").required = usesFedexInvoiceDates;
+}
+
+function resetSearchView() {
+  const meta = couriers[state.courier];
+  const type = currentSearchType();
+  const title = state.courier === "fedex" && state.searchType === "tracking"
+    ? "Seguimiento FedEx por tracking"
+    : meta.resultTitle;
+  const subtitle = state.courier === "fedex"
+    ? `Ingresa ${type.label.toLowerCase()} para consultar.`
+    : meta.subtitle;
+  message("");
+  resetMetrics();
+  setResultShell(title, subtitle);
+  $("resultCount").textContent = "";
+  $("results").innerHTML = `<div class="empty">Sin consulta.</div>`;
 }
 
 function setCourier(courier) {
   state.courier = courier;
-  const meta = couriers[courier];
   document.querySelectorAll(".courierTab").forEach((button) => {
     button.classList.toggle("active", button.dataset.courier === courier);
   });
-  $("fedexModeField").hidden = courier !== "fedex";
-  $("fromField").hidden = courier !== "fedex";
-  $("toField").hidden = courier !== "fedex";
-  $("fromInput").required = courier === "fedex";
-  $("toInput").required = courier === "fedex";
-  $("queryLabel").textContent = meta.label;
-  $("queryInput").placeholder = meta.placeholder;
   $("queryInput").value = "";
-  message("");
-  resetMetrics();
-  setResultShell(meta.resultTitle, meta.subtitle);
-  $("resultCount").textContent = "";
-  $("results").innerHTML = `<div class="empty">Sin consulta.</div>`;
-  syncFedexMode();
+  syncSearchType(false);
+  resetSearchView();
 }
 
 document.querySelectorAll(".courierTab").forEach((button) => {
   button.addEventListener("click", () => setCourier(button.dataset.courier));
 });
 
-$("fedexMode").addEventListener("change", syncFedexMode);
+$("searchType").addEventListener("change", () => {
+  state.searchType = $("searchType").value;
+  $("queryInput").value = "";
+  syncSearchType();
+  resetSearchView();
+});
 $("searchForm").addEventListener("submit", search);
 
 setDefaultDates();
