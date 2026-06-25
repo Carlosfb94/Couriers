@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Couriers</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./config.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brandMark">C</div>
+      <div>
+        <h1>Couriers</h1>
+        <p>Avanza, FedEx y Correos</p>
+      </div>
+    </div>
+    <div class="session">
+      <span class="dot"></span>
+      <span>APIs activas</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="courierPicker" aria-label="Seleccionar courier">
+      <button class="courierTab active" type="button" data-courier="avanza">
+        <img src="./assets/avanza.svg" alt="">
+        <span>Avanza</span>
+      </button>
+      <button class="courierTab" type="button" data-courier="fedex">
+        <img src="./assets/fedex.svg" alt="">
+        <span>FedEx</span>
+      </button>
+      <button class="courierTab" type="button" data-courier="correos">
+        <img src="./assets/correos.svg" alt="">
+        <span>Correos</span>
+      </button>
+    </section>
+
+    <section class="searchPanel">
+      <form id="searchForm">
+        <label class="field" id="fedexModeField" hidden>
+          Buscar por
+          <select id="fedexMode">
+            <option value="invoice">Factura</option>
+            <option value="tracking">Tracking</option>
+          </select>
+        </label>
+
+        <label class="field grow">
+          <span id="queryLabel">Nota de venta</span>
+          <input id="queryInput" autocomplete="off" inputmode="numeric" placeholder="Ej: 473063" required>
+        </label>
+
+        <label class="field dateField" id="fromField" hidden>
+          Desde
+          <input id="fromInput" type="date">
+        </label>
+
+        <label class="field dateField" id="toField" hidden>
+          Hasta
+          <input id="toInput" type="date">
+        </label>
+
+        <button class="primary" id="searchButton" type="submit">Buscar</button>
+      </form>
+    </section>
+
+    <p id="message"></p>
+
+    <section class="metrics" aria-label="Resumen">
+      <article>
+        <span>Courier</span>
+        <strong id="metricCourier">Avanza</strong>
+      </article>
+      <article>
+        <span>Estado</span>
+        <strong id="metricEstado">-</strong>
+      </article>
+      <article>
+        <span>Tracking</span>
+        <strong id="metricTracking">-</strong>
+      </article>
+      <article>
+        <span>Referencia</span>
+        <strong id="metricReference">-</strong>
+      </article>
+    </section>
+
+    <section class="resultPanel">
+      <div class="resultsHead">
+        <div>
+          <h2 id="resultTitle">Seguimiento Avanza</h2>
+          <p id="resultSubtitle">Ingresa una nota de venta para consultar.</p>
+        </div>
+        <span id="resultCount"></span>
+      </div>
+      <div id="results" class="empty">Sin consulta.</div>
+    </section>
+  </main>
+
+  <script type="module" src="./app.js?v=20260625-couriers"></script>
+</body>
+</html>
