@@ -1,0 +1,15 @@
+name: Keep Supabase Active
+
+on:
+  schedule:
+    - cron: "17 12 */3 * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Llacolen Couriers health endpoint
+        run: |
+          curl --fail --silent --show-error --max-time 30 \
+            "https://nvcitjzhqzdvkihisssk.supabase.co/functions/v1/health"
