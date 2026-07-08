@@ -98,7 +98,19 @@ function currentSearchType() {
 }
 
 async function fetchJson(url, params) {
-  const res = await fetch(`${url}?${params}`);
+  let res;
+  try {
+    res = await fetch(`${url}?${params}`);
+  } catch (error) {
+    const host = (() => {
+      try {
+        return new URL(url).host;
+      } catch {
+        return "Supabase";
+      }
+    })();
+    throw new Error(`No pude conectar con ${host}. El backend de Supabase no esta disponible o el proyecto esta pausado.`);
+  }
   const raw = await res.text();
   let data = {};
   try {
@@ -280,6 +292,7 @@ async function search(event) {
     }
     message(data.message || "Consulta lista.", data.found ? "" : "error");
   } catch (error) {
+    $("resultSubtitle").textContent = "Consulta fallida.";
     $("results").innerHTML = `<div class="empty">${escapeHtml(error.message || "Error consultando courier.")}</div>`;
     message(error.message || "Error consultando courier.", "error");
   } finally {
