@@ -12,6 +12,7 @@ const couriers = {
     subtitle: "Ingresa una nota de venta para consultar.",
     searchTypes: [
       {value: "nota", label: "Nota de venta", queryLabel: "Nota de venta", placeholder: "Ej: 473063"},
+      {value: "expedicion", label: "N° expedicion", queryLabel: "N° expedicion", placeholder: "Ej: EXP260626A042"},
     ],
   },
   fedex: {
@@ -52,6 +53,10 @@ function unique(values) {
 
 function digits(value) {
   return clean(value).replace(/[^\d]/g, "");
+}
+
+function expeditionNumber(value) {
+  return clean(value).replace(/[^\w-]/g, "").toUpperCase();
 }
 
 function firstInvoice(value) {
@@ -148,10 +153,15 @@ function renderAvanza(data) {
   const location = unique([seguimiento.comuna, courier.destino]).join(", ");
   const searched = unique([courier.searchedFrom ? `Desde ${courier.searchedFrom}` : "", courier.searchedTo ? `Hasta ${courier.searchedTo}` : ""]).join(" / ");
 
-  setResultShell(data.folio ? `N.Venta ${data.folio}` : "Seguimiento Avanza", data.time ? `Ultima consulta: ${dateTime(data.time)}` : "Consulta Avanza.", data.message || "");
+  const title = data.folio
+    ? `N.Venta ${data.folio}`
+    : data.expedition
+      ? `Expedicion ${data.expedition}`
+      : "Seguimiento Avanza";
+  setResultShell(title, data.time ? `Ultima consulta: ${dateTime(data.time)}` : "Consulta Avanza.", data.message || "");
   $("metricEstado").textContent = fallback(status);
   $("metricTracking").textContent = fallback(courier.tracking);
-  $("metricReference").textContent = fallback(courier.referencia1 || seguimiento.referencia1 || data.folio);
+  $("metricReference").textContent = fallback(courier.referencia1 || seguimiento.referencia1 || data.folio || data.expedition);
 
   if (!data.found || !courier.found) {
     $("results").innerHTML = `<div class="empty">${escapeHtml(data.message || "No encontre seguimiento Avanza para esta nota de venta.")}</div>`;
@@ -263,7 +273,8 @@ async function search(event) {
   const courier = state.courier;
   const searchType = state.searchType;
 
-  if (courier === "avanza") query = digits(query);
+  if (courier === "avanza" && searchType === "nota") query = digits(query);
+  if (courier === "avanza" && searchType === "expedicion") query = expeditionNumber(query);
   if (courier === "correos") query = firstInvoice(query);
   if (courier === "fedex" && searchType === "invoice") query = firstInvoice(query);
   if (courier === "fedex" && searchType === "tracking") query = digits(query);
@@ -278,7 +289,10 @@ async function search(event) {
 
   try {
     if (courier === "avanza") {
-      data = await fetchJson(config.avanzaFunctionUrl, new URLSearchParams({folio: query}));
+      const params = searchType === "expedicion"
+        ? new URLSearchParams({type: "expedicion", expedicion: query})
+        : new URLSearchParams({type: "nota", folio: query});
+      data = await fetchJson(config.avanzaFunctionUrl, params);
       renderAvanza(data);
     } else if (courier === "correos") {
       data = await fetchJson(config.correosFunctionUrl, new URLSearchParams({invoice: query}));
@@ -327,8 +341,10 @@ function resetSearchView() {
   const type = currentSearchType();
   const title = state.courier === "fedex" && state.searchType === "tracking"
     ? "Seguimiento FedEx por tracking"
+    : state.courier === "avanza" && state.searchType === "expedicion"
+      ? "Seguimiento Avanza por expedicion"
     : meta.resultTitle;
-  const subtitle = state.courier === "fedex"
+  const subtitle = state.courier === "fedex" || state.courier === "avanza"
     ? `Ingresa ${type.label.toLowerCase()} para consultar.`
     : meta.subtitle;
   message("");
